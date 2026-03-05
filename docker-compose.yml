@@ -3,4 +3,4 @@ services:
     build: .
     volumes:
       - .:/app
-    command: sh -c "vendor/bin/phpunit tests/"
+    command: sh -c "composer install --no-interaction && vendor/bin/phpunit tests/"

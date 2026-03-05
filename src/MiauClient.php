@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Eduzz\Miau;
 
 use GuzzleHttp\Client;
-use Firebase\JWT\JWT;
 
 class MiauClient
 {
-    private string $apiUrl;
-    private string $basicAuthToken;
-    private string $cacheKey;
-    private Client $http;
+    private $apiUrl;
+    private $basicAuthToken;
+    private $cacheKey;
+    private $http;
 
     public function __construct(string $apiUrl, string $appSecret, float $timeout = 10.0)
     {

@@ -10,7 +10,7 @@ composer require eduzz/miau-client
 
 ## Requirements
 
-- PHP >= 8.1
+- PHP >= 7.3
 - APCu extension (for token caching across requests)
 
 ## Usage
@@ -18,10 +18,7 @@ composer require eduzz/miau-client
 ```php
 use Eduzz\Miau\MiauClient;
 
-$client = new MiauClient(
-    apiUrl: 'https://your-miau-api-url',
-    appSecret: 'your-app-secret',
-);
+$client = new MiauClient('https://your-miau-api-url', 'your-app-secret');
 
 $token = $client->getToken();
 ```
@@ -36,7 +33,7 @@ $miauApiUrl = getenv('MIAU_API_URL');
 $miauAppSecret = getenv('MIAU_APP_SECRET') ?: '';
 $yourApiUrl = getenv('YOUR_API_URL') ?: 'https://your-api.example.com';
 
-$miau = new MiauClient(apiUrl: $miauApiUrl, appSecret: $miauAppSecret);
+$miau = new MiauClient($miauApiUrl, $miauAppSecret);
 $token = $miau->getToken();
 
 $http = new Client();
