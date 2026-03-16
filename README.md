@@ -63,6 +63,102 @@ Creates a new client instance.
 
 Returns a valid JWT access token. Tokens are cached via APCu and automatically refreshed when they are within 60 seconds of expiration.
 
+### `$client->getTokenData(): array`
+
+Returns the decoded payload of the server's own token.
+
+### `$client->getEnvironment(): string`
+
+Returns the environment extracted from the app secret (`development`, `test`, or `production`).
+
+### `$client->getPublicKey(string $kid): string`
+
+Fetches and caches the public key for the given key ID from the JWKS endpoint.
+
+### `$client->verify(string $token, string $publicKey): array`
+
+Verifies a JWT token signature using the provided RSA public key (RS256). Returns the decoded payload.
+
+### `$client->hasPermission(string $sourceAppId, array $resource): array`
+
+Checks if a source application has permission to access a given resource. Results are cached via APCu.
+
+### `$client->decodeTokenHeader(string $token): array`
+
+Decodes and returns the JWT header.
+
+### `$client->decodeTokenPayload(string $token): array`
+
+Decodes and returns the JWT payload.
+
+## Laravel Middleware
+
+The package includes a Laravel-compatible middleware that authenticates incoming requests using Miau tokens and checks permissions automatically.
+
+### Register the middleware
+
+In your `app/Http/Kernel.php`:
+
+```php
+use Eduzz\Miau\MiauClient;
+use Eduzz\Miau\Middleware\MiauMiddleware;
+
+// In the $routeMiddleware array:
+protected $routeMiddleware = [
+    // ...
+    'miau' => MiauMiddleware::class,
+];
+```
+
+Register the `MiauMiddleware` in your service provider so Laravel can inject it:
+
+```php
+// In AppServiceProvider or a dedicated provider
+use Eduzz\Miau\MiauClient;
+use Eduzz\Miau\Middleware\MiauMiddleware;
+
+public function register()
+{
+    $this->app->singleton(MiauMiddleware::class, function () {
+        $client = new MiauClient(
+            config('services.miau.api_url'),
+            config('services.miau.app_secret')
+        );
+
+        return new MiauMiddleware($client);
+    });
+}
+```
+
+### Use in routes
+
+```php
+Route::middleware('miau')->group(function () {
+    Route::get('/your/endpoint', function (Request $request) {
+        // $request->miauApplication  - ['id' => '...', 'name' => '...']
+        // $request->miauMetadata     - permission metadata
+        return response()->json(['app' => $request->miauApplication]);
+    });
+});
+```
+
+### Fallback handler
+
+You can provide a fallback callable for requests with missing or malformed tokens (400 errors). This is useful when some routes should allow unauthenticated access:
+
+```php
+$this->app->singleton(MiauMiddleware::class, function () {
+    $client = new MiauClient(
+        config('services.miau.api_url'),
+        config('services.miau.app_secret')
+    );
+
+    return new MiauMiddleware($client, function ($request, $next) {
+        return $next($request);
+    });
+});
+```
+
 ## Token Caching
 
 This client uses APCu to cache tokens across PHP requests. Make sure APCu is installed and enabled:
