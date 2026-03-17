@@ -40,10 +40,11 @@ class MiauMiddleware
                 'message' => $e->getMessage(),
             ], $e->getStatusCode());
         } catch (\Throwable $e) {
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 403;
             return new JsonResponse([
-                'error' => 'Forbidden',
+                'error' => (new \ReflectionClass($e))->getShortName(),
                 'message' => $e->getMessage(),
-            ], 403);
+            ], $status);
         }
     }
 
