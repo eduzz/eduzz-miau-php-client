@@ -266,37 +266,6 @@ class MiauClientTest extends TestCase
         $this->assertSame('development', $data['secret']['environment']);
     }
 
-    // --- decodeTokenHeader tests ---
-
-    public function testDecodeTokenHeader(): void
-    {
-        $token = $this->makeJwtWithKid(time() + 300, 'my-kid-123');
-        $client = new MiauClient(self::API_URL, self::APP_SECRET);
-
-        $header = $client->decodeTokenHeader($token);
-        $this->assertSame('RS256', $header['alg']);
-        $this->assertSame('my-kid-123', $header['kid']);
-    }
-
-    public function testDecodeTokenHeaderInvalidFormat(): void
-    {
-        $client = new MiauClient(self::API_URL, self::APP_SECRET);
-        $this->expectException(\RuntimeException::class);
-        $client->decodeTokenHeader('not-a-jwt');
-    }
-
-    // --- decodeTokenPayload tests ---
-
-    public function testDecodeTokenPayload(): void
-    {
-        $token = $this->makeJwt(time() + 300);
-        $client = new MiauClient(self::API_URL, self::APP_SECRET);
-
-        $payload = $client->decodeTokenPayload($token);
-        $this->assertArrayHasKey('exp', $payload);
-        $this->assertArrayHasKey('application', $payload);
-    }
-
     // --- getPublicKey tests ---
 
     public function testGetPublicKeyFetchesFromJwks(): void
@@ -384,7 +353,7 @@ class MiauClientTest extends TestCase
         $client = new MiauClient(self::API_URL, self::APP_SECRET);
         $result = $client->verify($token, $publicKeyPem);
 
-        $this->assertSame('a1', $result['application']['id']);
+        $this->assertSame('a1', $result->application->id);
     }
 
     public function testVerifyInvalidSignature(): void

@@ -83,13 +83,9 @@ Verifies a JWT token signature using the provided RSA public key (RS256). Return
 
 Checks if a source application has permission to access a given resource. Results are cached via APCu.
 
-### `$client->decodeTokenHeader(string $token): array`
+### `$client->decodeToken(string $token): array`
 
-Decodes and returns the JWT header.
-
-### `$client->decodeTokenPayload(string $token): array`
-
-Decodes and returns the JWT payload.
+Decodes the JWT and returns the payload as an associative array.
 
 ## Laravel Middleware
 

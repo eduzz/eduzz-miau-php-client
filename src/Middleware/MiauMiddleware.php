@@ -52,13 +52,14 @@ class MiauMiddleware
         $authHeader = $request->header('Authorization', '');
         $parts = explode(' ', $authHeader);
         $token = end($parts) ?: '';
+
         if (empty($token)) {
             throw new HttpError(400, 'Invalid Token', 'Token not provided', 'MIAU_TKN_A');
         }
 
         try {
-            $header = $this->client->decodeTokenHeader($token);
-            $payload = $this->client->decodeTokenPayload($token);
+            $payload = $this->client->decodeToken($token);
+            $header = json_decode(base64_decode(explode('.', $token)[0]), true);
         } catch (\Throwable $e) {
             throw new HttpError(400, 'Invalid Token', 'Token could not be decoded', 'MIAU_TKN_B');
         }
@@ -77,26 +78,26 @@ class MiauMiddleware
         $clientTokenData = $this->client->verify($token, $publicKey);
         $serverTokenData = $this->client->getTokenData();
 
-        $clientApp = $clientTokenData['application'] ?? null;
-        $clientSecret = $clientTokenData['secret'] ?? null;
+        $clientApp = $clientTokenData->application ?? null;
+        $clientSecret = $clientTokenData->secret ?? null;
 
         if (
             !$clientApp
             || !$clientSecret
-            || empty($clientApp['id'])
-            || empty($clientSecret['id'])
-            || empty($clientSecret['environment'])
+            || empty($clientApp->id)
+            || empty($clientSecret->id)
+            || empty($clientSecret->environment)
         ) {
             throw new HttpError(401, 'Invalid Token', 'Token invalid or expired', 'MIAU_TKN_E');
         }
 
         $serverSecret = $serverTokenData['secret'] ?? [];
 
-        if (($clientSecret['environment'] ?? '') !== ($serverSecret['environment'] ?? '')) {
+        if ($clientSecret->environment !== ($serverSecret['environment'] ?? '')) {
             throw new HttpError(
                 401,
                 'Invalid Environment',
-                "Secret environment {$clientSecret['environment']} does not match Server environment {$serverSecret['environment']}",
+                "Secret environment {$clientSecret->environment} does not match Server environment {$serverSecret['environment']}",
                 'MIAU_ENV_A'
             );
         }
@@ -107,19 +108,19 @@ class MiauMiddleware
             'path' => '/' . ltrim($request->path(), '/'),
         ];
 
-        $permissionResult = $this->client->hasPermission($clientApp['id'], $resource);
+        $permissionResult = $this->client->hasPermission($clientApp->id, $resource);
 
         if (empty($permissionResult['success'])) {
             $serverApp = $serverTokenData['application'] ?? [];
             throw new HttpError(
                 403,
                 'Forbidden',
-                "{$clientApp['name']} does not have permission to {$request->method()} {$request->path()} on {$serverApp['name']}",
+                "{$clientApp->name} does not have permission to {$request->method()} {$request->path()} on {$serverApp['name']}",
                 'MIAU_PERM_B'
             );
         }
 
-        $miauApplication = ['id' => $clientApp['id'], 'name' => $clientApp['name']];
+        $miauApplication = ['id' => $clientApp->id, 'name' => $clientApp->name];
         $miauMetadata = $permissionResult['metadata'] ?? [];
 
         return [$miauApplication, $miauMetadata];
