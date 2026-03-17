@@ -26,8 +26,8 @@ class MiauMiddleware
         try {
             list($miauApplication, $miauMetadata) = $this->authenticate($request);
 
-            $request->miauApplication = $miauApplication;
-            $request->miauMetadata = $miauMetadata;
+            $request->attributes->set('miauApplication', $miauApplication);
+            $request->attributes->set('miauMetadata', $miauMetadata);
 
             return $next($request);
         } catch (HttpError $e) {
@@ -52,7 +52,6 @@ class MiauMiddleware
         $authHeader = $request->header('Authorization', '');
         $parts = explode(' ', $authHeader);
         $token = end($parts) ?: '';
-
         if (empty($token)) {
             throw new HttpError(400, 'Invalid Token', 'Token not provided', 'MIAU_TKN_A');
         }
@@ -105,7 +104,7 @@ class MiauMiddleware
         $resource = [
             'protocol' => 'http',
             'method' => $request->method(),
-            'path' => $request->path(),
+            'path' => '/' . ltrim($request->path(), '/'),
         ];
 
         $permissionResult = $this->client->hasPermission($clientApp['id'], $resource);
