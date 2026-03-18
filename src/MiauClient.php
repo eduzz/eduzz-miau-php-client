@@ -27,7 +27,7 @@ class MiauClient
 
         $this->apiUrl = $apiUrl;
         $this->appSecret = $appSecret;
-        $this->tokenCacheKey = 'miau_token:' . md5($apiUrl);
+        $this->tokenCacheKey = 'miau_token:' . md5($apiUrl . ':' . $appSecret);
         $this->http = new Client(['timeout' => $timeout]);
 
         $apiKey = substr($appSecret, 7, 25);
