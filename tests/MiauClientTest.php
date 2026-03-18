@@ -369,7 +369,7 @@ class MiauClientTest extends TestCase
         $client = new MiauClient(self::API_URL, self::APP_SECRET);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('signature verification failed');
+        $this->expectExceptionMessage('Signature verification failed');
         $client->verify($token, $publicKeyPem);
     }
 
