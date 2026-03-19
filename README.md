@@ -47,46 +47,6 @@ $data = json_decode((string) $response->getBody(), true);
 echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . PHP_EOL;
 ```
 
-## API
-
-### `new MiauClient(string $apiUrl, string $appSecret, float $timeout = 10.0)`
-
-Creates a new client instance.
-
-| Parameter    | Type     | Default | Description                  |
-|-------------|----------|---------|------------------------------|
-| `$apiUrl`   | `string` | —       | Miau API base URL            |
-| `$appSecret`| `string` | —       | Application secret from Miau |
-| `$timeout`  | `float`  | `10.0`  | HTTP request timeout in seconds |
-
-### `$client->getToken(): string`
-
-Returns a valid JWT access token. Tokens are cached via APCu and automatically refreshed when they are within 60 seconds of expiration.
-
-### `$client->getTokenData(): array`
-
-Returns the decoded payload of the server's own token.
-
-### `$client->getEnvironment(): string`
-
-Returns the environment extracted from the app secret (`development`, `test`, or `production`).
-
-### `$client->getPublicKey(string $kid): string`
-
-Fetches and caches the public key for the given key ID from the JWKS endpoint.
-
-### `$client->verify(string $token, string $publicKey): array`
-
-Verifies a JWT token signature using the provided RSA public key (RS256). Returns the decoded payload.
-
-### `$client->hasPermission(string $sourceAppId, array $resource): array`
-
-Checks if a source application has permission to access a given resource. Results are cached via APCu.
-
-### `$client->decodeToken(string $token): array`
-
-Decodes the JWT and returns the payload as an associative array.
-
 ## Laravel Middleware
 
 The package includes a Laravel-compatible middleware that authenticates incoming requests using Miau tokens and checks permissions automatically.
@@ -140,33 +100,70 @@ Route::middleware('miau')->group(function () {
 
 ### Fallback handler
 
-You can provide a fallback callable for requests with missing or malformed tokens (400 errors). This is useful when some routes should allow unauthenticated access:
+The middleware triggers the fallback when the incoming token is missing or not a valid Miau token (HTTP 400 errors). This lets you handle alternative authentication schemes on the same routes -- for example, accepting Basic Auth for legacy clients while still supporting Miau tokens.
 
 ```php
-$this->app->singleton(MiauMiddleware::class, function () {
+use Eduzz\Miau\MiauClient;
+use Eduzz\Miau\Middleware\MiauMiddleware;
+use Illuminate\Http\JsonResponse;
+
+// Register a middleware instance with a Basic Auth fallback
+$this->app->singleton('miau.basic', function () {
     $client = new MiauClient(
         config('services.miau.api_url'),
         config('services.miau.app_secret')
     );
 
-    return new MiauMiddleware($client, function ($request, $next) {
+    $basicAuthFallback = function ($request, $next) {
+        $authHeader = $request->header('Authorization', '');
+
+        if (empty($authHeader) || !str_starts_with($authHeader, 'Basic ')) {
+            return new JsonResponse([
+                'error' => 'Unauthorized',
+                'message' => 'No credentials provided',
+            ], 401);
+        }
+
+        $decoded = base64_decode(substr($authHeader, 6));
+        [$username, $password] = explode(':', $decoded, 2);
+
+        // Validate credentials against your own logic
+        if (!$this->validateCredentials($username, $password)) {
+            return new JsonResponse([
+                'error' => 'Unauthorized',
+                'message' => 'Invalid credentials',
+            ], 401);
+        }
+
+        $request->attributes->set('username', $username);
+
         return $next($request);
-    });
+    };
+
+    return new MiauMiddleware($client, $basicAuthFallback);
 });
 ```
 
-## Token Caching
+Then apply it to routes that should accept both Miau tokens and Basic Auth:
 
-This client uses APCu to cache tokens across PHP requests. Make sure APCu is installed and enabled:
+```php
+Route::middleware('miau.basic')->group(function () {
+    Route::get('/legacy-route', function (Request $request) {
+        $miauApp = $request->attributes->get('miauApplication');
 
-```ini
-; php.ini
-extension=apcu
-apc.enabled=1
-```
+        if ($miauApp) {
+            // Authenticated via Miau token
+            return response()->json([
+                'auth' => 'miau',
+                'application' => $miauApp,
+            ]);
+        }
 
-For CLI usage (e.g. workers, scripts), also enable:
-
-```ini
-apc.enable_cli=1
+        // Authenticated via Basic Auth fallback
+        return response()->json([
+            'auth' => 'basic',
+            'username' => $request->attributes->get('username'),
+        ]);
+    });
+});
 ```
