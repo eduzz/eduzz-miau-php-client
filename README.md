@@ -1,19 +1,19 @@
 # eduzz/miau-client
 
-PHP client for the Eduzz Miau authentication service.
+Client PHP para o serviço de autenticação Eduzz Miau.
 
-## Installation
+## Instalação
 
 ```bash
 composer require eduzz/miau-client
 ```
 
-## Requirements
+## Requisitos
 
 - PHP >= 8.3
-- APCu extension (for token caching across requests)
+- Extensão APCu (para cache de tokens entre requisições)
 
-## Usage
+## Uso
 
 ```php
 use Eduzz\Miau\MiauClient;
@@ -23,7 +23,7 @@ $client = new MiauClient('https://your-miau-api-url', 'your-app-secret');
 $token = $client->getToken();
 ```
 
-## Example
+## Exemplo
 
 ```php
 use Eduzz\Miau\MiauClient;
@@ -47,29 +47,29 @@ $data = json_decode((string) $response->getBody(), true);
 echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . PHP_EOL;
 ```
 
-## Laravel Middleware
+## Middleware Laravel
 
-The package includes a Laravel-compatible middleware that authenticates incoming requests using Miau tokens and checks permissions automatically.
+O pacote inclui um middleware compatível com Laravel que autentica requisições usando tokens Miau e verifica permissões automaticamente.
 
-### Register the middleware
+### Registrar o middleware
 
-In your `app/Http/Kernel.php`:
+No seu `app/Http/Kernel.php`:
 
 ```php
 use Eduzz\Miau\MiauClient;
 use Eduzz\Miau\Middleware\MiauMiddleware;
 
-// In the $routeMiddleware array:
+// No array $routeMiddleware:
 protected $routeMiddleware = [
     // ...
     'miau' => MiauMiddleware::class,
 ];
 ```
 
-Register the `MiauMiddleware` in your service provider so Laravel can inject it:
+Registre o `MiauMiddleware` no seu service provider para que o Laravel possa injetá-lo:
 
 ```php
-// In AppServiceProvider or a dedicated provider
+// No AppServiceProvider ou em um provider dedicado
 use Eduzz\Miau\MiauClient;
 use Eduzz\Miau\Middleware\MiauMiddleware;
 
@@ -86,28 +86,28 @@ public function register()
 }
 ```
 
-### Use in routes
+### Uso nas rotas
 
 ```php
 Route::middleware('miau')->group(function () {
     Route::get('/your/endpoint', function (Request $request) {
         // $request->miauApplication  - ['id' => '...', 'name' => '...']
-        // $request->miauMetadata     - permission metadata
+        // $request->miauMetadata     - metadata de permissão
         return response()->json(['app' => $request->miauApplication]);
     });
 });
 ```
 
-### Fallback handler
+### Handler de fallback
 
-The middleware triggers the fallback when the incoming token is missing or not a valid Miau token (HTTP 400 errors). This lets you handle alternative authentication schemes on the same routes -- for example, accepting Basic Auth for legacy clients while still supporting Miau tokens.
+O middleware aciona o fallback quando o token está ausente ou não é um token Miau válido (erros HTTP 400). Isso permite lidar com esquemas de autenticação alternativos nas mesmas rotas -- por exemplo, aceitar Basic Auth para clients legados enquanto ainda suporta tokens Miau.
 
 ```php
 use Eduzz\Miau\MiauClient;
 use Eduzz\Miau\Middleware\MiauMiddleware;
 use Illuminate\Http\JsonResponse;
 
-// Register a middleware instance with a Basic Auth fallback
+// Registrar uma instância do middleware com fallback de Basic Auth
 $this->app->singleton('miau.basic', function () {
     $client = new MiauClient(
         config('services.miau.api_url'),
@@ -120,18 +120,18 @@ $this->app->singleton('miau.basic', function () {
         if (empty($authHeader) || !str_starts_with($authHeader, 'Basic ')) {
             return new JsonResponse([
                 'error' => 'Unauthorized',
-                'message' => 'No credentials provided',
+                'message' => 'Credenciais não fornecidas',
             ], 401);
         }
 
         $decoded = base64_decode(substr($authHeader, 6));
         [$username, $password] = explode(':', $decoded, 2);
 
-        // Validate credentials against your own logic
+        // Valide as credenciais com sua própria lógica
         if (!$this->validateCredentials($username, $password)) {
             return new JsonResponse([
                 'error' => 'Unauthorized',
-                'message' => 'Invalid credentials',
+                'message' => 'Credenciais inválidas',
             ], 401);
         }
 
@@ -144,7 +144,7 @@ $this->app->singleton('miau.basic', function () {
 });
 ```
 
-Then apply it to routes that should accept both Miau tokens and Basic Auth:
+Depois aplique nas rotas que devem aceitar tanto tokens Miau quanto Basic Auth:
 
 ```php
 Route::middleware('miau.basic')->group(function () {
@@ -152,14 +152,14 @@ Route::middleware('miau.basic')->group(function () {
         $miauApp = $request->attributes->get('miauApplication');
 
         if ($miauApp) {
-            // Authenticated via Miau token
+            // Autenticado via token Miau
             return response()->json([
                 'auth' => 'miau',
                 'application' => $miauApp,
             ]);
         }
 
-        // Authenticated via Basic Auth fallback
+        // Autenticado via fallback Basic Auth
         return response()->json([
             'auth' => 'basic',
             'username' => $request->attributes->get('username'),
