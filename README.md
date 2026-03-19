@@ -10,7 +10,7 @@ composer require eduzz/miau-client
 
 ## Requirements
 
-- PHP >= 7.3
+- PHP >= 8.3
 - APCu extension (for token caching across requests)
 
 ## Usage
