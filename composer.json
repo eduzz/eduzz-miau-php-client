@@ -3,7 +3,7 @@
     "description": "Eduzz Miau Client for PHP",
     "type": "library",
     "license": "MIT",
-    "version": "1.4.5-rc.21",
+    "version": "1.4.5",
     "require": {
         "php": ">=8.0",
         "ext-apcu": "*",
