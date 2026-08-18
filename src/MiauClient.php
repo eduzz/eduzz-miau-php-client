@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eduzz\Miau;
 
 use CoderCat\JWKToPEM\JWKConverter;
+use Composer\InstalledVersions;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use GuzzleHttp\Client;
@@ -16,6 +17,7 @@ class MiauClient
     private $basicAuthToken;
     private $tokenCacheKey;
     private $http;
+    private $version;
 
     public function __construct(string $apiUrl, string $appSecret, float $timeout = 10.0)
     {
@@ -29,6 +31,9 @@ class MiauClient
         $this->appSecret = $appSecret;
         $this->tokenCacheKey = 'miau_token:' . md5($apiUrl . ':' . $appSecret);
         $this->http = new Client(['timeout' => $timeout]);
+        $this->version = InstalledVersions::isInstalled('eduzz/miau-client')
+            ? (InstalledVersions::getPrettyVersion('eduzz/miau-client') ?? 'unknown')
+            : 'unknown';
 
         $apiKey = substr($appSecret, 7, 25);
         $hashedSecret = hash('sha256', $appSecret);
@@ -64,6 +69,7 @@ class MiauClient
             'headers' => [
                 'Authorization' => "Basic {$this->basicAuthToken}",
                 'Content-Type' => 'application/json',
+                'Miau-Client' => "php/{$this->version}",
             ],
             'http_errors' => false,
         ]);
@@ -154,6 +160,7 @@ class MiauClient
             'headers' => [
                 'Authorization' => "Basic {$this->basicAuthToken}",
                 'Content-Type' => 'application/json',
+                'Miau-Client' => "php/{$this->version}",
             ],
             'body' => $body,
             'http_errors' => false,

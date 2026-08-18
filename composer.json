@@ -3,10 +3,11 @@
     "description": "Eduzz Miau Client for PHP",
     "type": "library",
     "license": "MIT",
-    "version": "1.4.5",
+    "version": "1.4.5-rc.23",
     "require": {
         "php": ">=8.0",
         "ext-apcu": "*",
+        "composer-runtime-api": "^2.2",
         "codercat/jwk-to-pem": "^1.0",
         "firebase/php-jwt": "^7.0",
         "guzzlehttp/guzzle": "^7.0"

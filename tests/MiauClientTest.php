@@ -215,6 +215,7 @@ class MiauClientTest extends TestCase
         $request = $history[0]['request'];
         $this->assertStringStartsWith('Basic ', $request->getHeaderLine('Authorization'));
         $this->assertSame('application/json', $request->getHeaderLine('Content-Type'));
+        $this->assertStringStartsWith('php/', $request->getHeaderLine('Miau-Client'));
     }
 
     // --- getEnvironment tests ---
